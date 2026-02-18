@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mahalakshmi Stores - Billing</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <script src="jspdf.umd.min.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(r => console.log('SW registered'))
+                    .catch(e => console.log('SW error:', e));
+            });
+        }
+    </script>
+</head>
+
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="app-header">
+            <h1>Mahalakshmi Stores</h1>
+            <span class="subtitle">Billing</span>
+        </header>
+
+        <!-- Category Tabs -->
+        <nav class="tabs">
+            <button class="tab active" data-mode="groceries">Groceries</button>
+            <button class="tab" data-mode="toiletries">Toiletries</button>
+            <button class="tab" data-mode="disinfectives">Disinfectives</button>
+        </nav>
+
+        <!-- Bill Info Bar -->
+        <div class="bill-info">
+            <div class="field">
+                <label for="billDate">Date</label>
+                <input type="date" id="billDate">
+            </div>
+            <div class="field">
+                <label for="billNo">Bill No</label>
+                <input type="text" id="billNo" value="87">
+            </div>
+            <div class="field field-wide">
+                <label for="recipient">Recipient</label>
+                <input type="text" id="recipient" value="Access Life Assistance">
+            </div>
+        </div>
+
+        <!-- Item Table -->
+        <div class="table-wrap">
+            <table class="item-table">
+                <thead>
+                    <tr>
+                        <th class="th-item">Item</th>
+                        <th class="th-rate">Rate (₹)</th>
+                        <th class="th-qty">Qty</th>
+                        <th class="th-amt">Amount (₹)</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+
+        <button id="addItemBtn" class="btn-add">+ Add Custom Item</button>
+
+        <!-- Total Bar -->
+        <div class="total-bar">
+            Total: <strong>₹<span id="totalDisplay">0.00</span></strong>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="actions">
+            <button id="pdfBtn" class="btn btn-primary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Download PDF
+            </button>
+            <button id="saveBtn" class="btn btn-outline">💾 Save</button>
+            <button id="loadBtn" class="btn btn-outline">📂 Load</button>
+            <button id="csvBtn" class="btn btn-outline">📊 CSV</button>
+        </div>
+    </div>
+
+    <!-- Load Bills Modal -->
+    <div id="loadModal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-box">
+            <div class="modal-head">
+                <h2>Saved Bills</h2>
+                <button id="closeModal" class="modal-close">&times;</button>
+            </div>
+            <div id="billList" class="bill-list"></div>
+        </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
