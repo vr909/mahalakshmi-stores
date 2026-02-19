@@ -1,9 +1,11 @@
-{
-    "name": "Mahalakshmi Stores",
+﻿{
+    "name": "Mahalakshmi Stores Billing",
     "short_name": "MStores",
-    "start_url": "index.html",
+    "description": "Touch-friendly offline billing app for Mahalakshmi Stores",
+    "start_url": "./index.html",
+    "scope": "./",
     "display": "standalone",
-    "background_color": "#f1f5f9",
-    "theme_color": "#1e293b",
+    "background_color": "#f8fbf6",
+    "theme_color": "#0f766e",
     "icons": []
 }

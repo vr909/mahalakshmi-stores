@@ -27,6 +27,7 @@ A lightweight, offline-capable billing app built for **Mahalakshmi Stores**, a g
 ### Run Locally
 
 ```bash
+cd v2/
 python -m http.server 8080
 # Open http://localhost:8080
 ```
@@ -70,4 +71,3 @@ Each generated invoice includes:
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
-
