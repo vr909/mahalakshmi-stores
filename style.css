@@ -475,7 +475,7 @@ main {
     z-index: 180;
     display: grid;
     gap: 8px;
-    grid-template-columns: minmax(170px, 2fr) repeat(4, minmax(0, 1fr));
+    grid-template-columns: minmax(170px, 2fr) repeat(5, minmax(0, 1fr));
     background: #ffffffdb;
     backdrop-filter: blur(8px);
     border: 1px solid var(--line);

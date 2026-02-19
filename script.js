@@ -109,6 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearSearchBtn = document.getElementById('clearSearchBtn');
     const draftBadge = document.getElementById('draftBadge');
     const backToTopBtn = document.getElementById('backToTopBtn');
+    const csvImportInput = document.getElementById('csvImportInput');
 
     const numericPad = document.getElementById('numericPad');
     const padTitle = document.getElementById('padTitle');
@@ -241,6 +242,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function normalizeLoadedItems(items) {
         return (items || []).map(i => createItem(i.displayName || 'Custom Item', i.rate || 0, i.qty || 0, i.isCustom));
+    }
+
+    function getItemsListForCategory(category) {
+        if (category === 'groceries') return GROCERY_ITEMS;
+        if (category === 'toiletries') return TOILETRY_ITEMS;
+        return DISINFECTIVE_ITEMS;
     }
 
     /* ==================== RENDERING ==================== */
@@ -829,6 +836,151 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('CSV exported');
     }
 
+    async function importCSVFromFile(file) {
+        if (!file) return;
+        try {
+            const text = await file.text();
+            const rows = parseInvoiceCSV(text);
+            if (rows.length === 0) {
+                showToast('No valid bill rows found in CSV', 'error');
+                return;
+            }
+
+            const filenameCategory = detectCategoryFromFileName(file.name);
+            const detectedCategory = guessCategoryFromRows(rows, filenameCategory);
+
+            if (detectedCategory !== currentMode) {
+                const label = { groceries: 'Groceries', toiletries: 'Toiletries', disinfectives: 'Disinfectives' }[detectedCategory];
+                if (!confirm('Import looks like ' + label + '. Switch category and load?')) return;
+            }
+
+            const loadedState = buildState(getItemsListForCategory(detectedCategory));
+            const byName = new Map(loadedState.map(i => [i.displayName.trim().toLowerCase(), i]));
+
+            rows.forEach(r => {
+                const key = r.item.trim().toLowerCase();
+                const rate = Math.max(0, Math.round(r.rate));
+                const qty = Math.max(0, Math.round(r.qty));
+                if (qty <= 0 || rate <= 0) return;
+
+                const existing = byName.get(key);
+                if (existing) {
+                    existing.rate = rate;
+                    existing.qty = qty;
+                    existing.amount = rate * qty;
+                    saveDefaultRate(existing.displayName, rate);
+                } else {
+                    loadedState.push(createItem(r.item.trim(), rate, qty, true));
+                    saveDefaultRate(r.item.trim(), rate);
+                }
+            });
+
+            currentMode = detectedCategory;
+            states[currentMode] = loadedState;
+            syncActiveCategoryTab();
+
+            const importedBillNo = detectBillNoFromFileName(file.name);
+            if (importedBillNo) {
+                billNos[currentMode] = importedBillNo;
+                billNoInput.value = importedBillNo;
+                persistBillNosByCategory();
+            } else {
+                billNoInput.value = billNos[currentMode];
+            }
+
+            searchQuery = '';
+            if (itemSearchInput) itemSearchInput.value = '';
+            clearSearchBtn?.classList.add('is-disabled');
+            clearSearchBtn && (clearSearchBtn.disabled = true);
+
+            renderItems();
+            updateSummary();
+            persistDraftState();
+            showToast('CSV imported into ' + ({ groceries: 'Groceries', toiletries: 'Toiletries', disinfectives: 'Disinfectives' }[currentMode]));
+        } catch {
+            showToast('Failed to import CSV', 'error');
+        } finally {
+            if (csvImportInput) csvImportInput.value = '';
+        }
+    }
+
+    function parseInvoiceCSV(text) {
+        const lines = (text || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+        const rows = [];
+        lines.forEach((line, idx) => {
+            if (idx === 0 && line.toLowerCase().startsWith('s.no,')) return;
+            const cols = parseCSVLine(line);
+            if (cols.length < 5) return;
+
+            const item = (cols[1] || '').trim();
+            if (!item) return;
+            if (item.toLowerCase() === 'grand total') return;
+
+            const rate = parseFloat((cols[2] || '').trim());
+            const qty = parseFloat((cols[3] || '').trim());
+            if (!Number.isFinite(rate) || !Number.isFinite(qty)) return;
+
+            rows.push({ item, rate, qty });
+        });
+        return rows;
+    }
+
+    function parseCSVLine(line) {
+        const out = [];
+        let cur = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (ch === '"') {
+                if (inQuotes && line[i + 1] === '"') {
+                    cur += '"';
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+                continue;
+            }
+            if (ch === ',' && !inQuotes) {
+                out.push(cur);
+                cur = '';
+                continue;
+            }
+            cur += ch;
+        }
+        out.push(cur);
+        return out;
+    }
+
+    function detectCategoryFromFileName(name) {
+        const n = (name || '').toLowerCase();
+        if (n.includes('_groceries')) return 'groceries';
+        if (n.includes('_toiletries')) return 'toiletries';
+        if (n.includes('_disinfectives')) return 'disinfectives';
+        return null;
+    }
+
+    function detectBillNoFromFileName(name) {
+        const match = (name || '').match(/^Invoice_(.+?)_(Groceries|Toiletries|Disinfectives)\.csv$/i);
+        return match ? match[1] : '';
+    }
+
+    function guessCategoryFromRows(rows, filenameCategory) {
+        if (filenameCategory) return filenameCategory;
+        const rowNames = new Set(rows.map(r => r.item.trim().toLowerCase()));
+        const score = category => {
+            const names = buildState(getItemsListForCategory(category)).map(i => i.displayName.trim().toLowerCase());
+            let s = 0;
+            names.forEach(n => { if (rowNames.has(n)) s++; });
+            return s;
+        };
+        const candidates = [
+            { c: 'groceries', s: score('groceries') },
+            { c: 'toiletries', s: score('toiletries') },
+            { c: 'disinfectives', s: score('disinfectives') }
+        ].sort((a, b) => b.s - a.s);
+        return candidates[0].s > 0 ? candidates[0].c : currentMode;
+    }
+
     /* ==================== AUX ACTIONS ==================== */
     function addCustomItem() {
         const name = prompt('Enter custom item name');
@@ -912,6 +1064,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /* ==================== WIRE BUTTONS ==================== */
     document.getElementById('pdfBtn').addEventListener('click', generatePDF);
+    document.getElementById('importCsvBtn').addEventListener('click', () => csvImportInput?.click());
     document.getElementById('saveBtn').addEventListener('click', saveBill);
     document.getElementById('loadBtn').addEventListener('click', showLoadModal);
     document.getElementById('csvBtn').addEventListener('click', exportCSV);
@@ -926,4 +1079,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     billDateInput.addEventListener('input', persistDraftState);
     recipientInput.addEventListener('input', persistDraftState);
+    csvImportInput?.addEventListener('change', () => {
+        const file = csvImportInput.files && csvImportInput.files[0];
+        if (file) importCSVFromFile(file);
+    });
 });
