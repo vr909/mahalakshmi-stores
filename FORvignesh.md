@@ -1,81 +1,224 @@
-# 🧾 Mahalakshmi Stores Billing App — v2
+﻿# Mahalakshmi Stores Billing App - Project Handover (Current State)
 
-## What's New in v2?
+## 1) Project Purpose
 
-The **entire app was rebuilt** to solve the core problem with v1: **inconsistent PDF output across devices**. The old approach (html2pdf.js) took a screenshot of the HTML, so PDFs looked different on your tablet vs desktop. The new approach uses **jsPDF** to draw every line of the PDF programmatically — same result on any device.
+A touch-first, offline-capable billing PWA for Mahalakshmi Stores.
 
-### Key Changes from v1
-| Feature | v1 | v2 |
-|---|---|---|
-| PDF Engine | html2pdf.js (screenshot) | jsPDF (programmatic drawing) |
-| Multi-page | DOM cloning hack | Built-in page loop |
-| Save/Load | Not supported | localStorage |
-| CSV Export | Not supported | ✅ |
-| Offline | Service worker (basic) | PWA with cache-first SW |
-| Android APK | Cordova build | Discontinued (PWA only) |
+Primary goals achieved:
+- Fast, low-friction billing on mobile/tablet.
+- Consistent PDF output across devices.
+- Strong resilience against accidental refresh/data loss.
+- Simple local usage without backend.
 
----
+## 2) Hard Requirements Preserved
 
-## File Structure
+These were explicitly preserved throughout the redesign:
+- Hardcoded item lists remain in code (no backend/dynamic catalogs).
+- Category set remains exactly:
+  - Groceries
+  - Toiletries
+  - Disinfectives
+- PDF generation remains programmatic via jsPDF.
+- PDF format/layout logic retained (A4 invoice structure with pagination, totals, etc.).
 
-```
-v2/
-├── index.html           # App layout & structure
-├── style.css            # Tablet-first, modern UI styles
-├── script.js            # All logic: items, state, PDF, save/load, CSV
-├── jspdf.umd.min.js     # jsPDF 2.5.1 (bundled locally for offline)
-├── manifest.json        # PWA manifest (installable app)
-├── sw.js                # Service Worker (cache-first, offline ready)
-└── FORvignesh.md        # This file
-```
+## 3) Scope of Completed Upgrades
 
----
+### UX and UI
+- Rebuilt from table-based entry to large card-based, tap-first controls.
+- Added guided, touch-friendly entry model:
+  - Qty stepper (+/-)
+  - Rate stepper (+/- with step 5)
+  - Numeric keypad modal for direct entry
+- Added voice readout on item name tap (speech synthesis).
+- Added lightweight haptic feedback on supported devices.
+- Added sticky top tooling (category + search tools) with compact-on-scroll behavior.
+- Added floating `Top` button.
+- Added floating `+ Add Custom Item` button.
+- Added mobile micro-responsiveness improvements for very small screens.
 
-## How the App Works
+### Data and Reliability
+- Added full auto-save draft across categories (`activeBillDraft`) so refresh does not lose work.
+- Added per-category bill number memory (`billNosByCategory`) with defaults:
+  - Groceries: 92
+  - Toiletries: 93
+  - Disinfectives: 94
+- Added/maintained save-load bill workflow (`bill_*` keys).
+- Preserved default rate memory per item (`defaultRates`).
 
-### Item Data
-Items are hardcoded arrays (Groceries, Toiletries, Disinfectives). Some items have **variants** (e.g., "Amul Ghee 200ml" and "Amul Ghee 500ml"). The `buildState()` function flattens these into individual rows.
+### CSV and Preview
+- CSV export retained and updated for integer rate display.
+- CSV import added (reads app-exported invoice CSV and maps rows to items).
+- Added bill preview modal for quick at-a-glance verification (not PDF-styled, intentionally).
 
-### Default Rates
-When you enter a rate for an item, it's saved to `localStorage` as a default. Next time you open the app, that rate auto-fills. This saves time on repeat billing.
+### Service Worker / PWA
+- Service worker cache version updated to `mstores-v3`.
+- Offline fetch fallback improved.
+- Manifest metadata adjusted for current app identity/theme.
 
-### PDF Generation (`generatePDF()`)
-This is the heart of the rebuild. Here's how it works:
+## 4) Requirements/Requests Implemented (User-Driven)
 
-1. **Filter** — Only items with qty > 0 and rate > 0 are included
-2. **Calculate rows-per-page** — Based on available vertical space (A4 page minus headers/margins/footer)
-3. **Smart pagination** — If the last page would have ≤2 items, we redistribute items to fill pages more evenly
-4. **Page loop** — For each page:
-   - Draw header (store name left, recipient right)
-   - Draw bill meta (bill number, category, date)
-   - Draw column headers (S.No, Item, Rate, Qty, Amount)
-   - Draw data rows
-   - On last page: draw Grand Total
-   - Draw footer ("Page X of Y" bottom-right)
+This section captures the major requested tweaks that were completed.
 
-### Save/Load
-Bills are saved to `localStorage` with key format `bill_{number}_{category}`. The Load modal shows all saved bills sorted by date, with load and delete buttons.
+- Removed onboarding instruction strip (1/2/3).
+- Numeric popup titles now include item context:
+  - `Set Quantity for <item>`
+  - `Set Rate (Rs.) for <item>`
+- Rate +/- increment changed to 5.
+- Removed quick rate suggestion chips.
+- Removed category subtitle texts (`Basket`, `Sparkle`, `Shield`) from tabs.
+- Toiletries list updated:
+  - Added `Odonil Air freshner 48g x 4 Box`
+  - Corrected to `Odonil Room Spray 150ml`
+- Added autosave draft on edits and restored on reload.
+- Improved long-list usability:
+  - Search
+  - Back-to-top
+  - Sticky tools
+- Refined toolbar prominence:
+  - Category tabs made more prominent
+  - Find/Clear tools made less prominent
+- Find + Clear kept on same row for space efficiency.
+- Rate display/entry switched to integer-focused behavior.
+- Numpad `Back` renamed to `Delete`.
+- Added bill preview popup.
+- Added CSV import action/button.
+- Dock button arrangement updated:
+  - Row 1: Preview, Save, Load
+  - Row 2: Save CSV, Import CSV, Reset
+  - PDF remains full-width top row CTA
+- Picked item active highlight strengthened, then tuned thickness to `1.25px`.
+- Active highlight accent unified to toiletries color for all categories.
+- Floating custom button repositioned and restyled for prominence.
+- Custom item insertion logic updated to use **most recently picked item** semantics.
 
-### CSV Export
-Generates a standard CSV file with S.No, Item, Rate, Qty, Amount columns plus Grand Total.
+## 5) Current Functional Behavior (Detailed)
 
----
+### Item data and state
+- Item masters are defined in `script.js` arrays.
+- `buildState()` expands variant items into flat display rows.
+- Runtime state by category is maintained in-memory and persisted to draft.
 
-## How to Use (on your Samsung tablet)
+### Entry model
+- Qty and rate updates recompute amount immediately.
+- Rate is rounded to integer in UI entry path.
+- Total and picked count update live.
 
-1. Open the app in **Chrome** on your tablet
-2. Tap the browser menu → **"Add to Home screen"** → this installs it as a PWA
-3. Now you can open it like a regular app, and it works **offline**
-4. Select a category tab (Groceries/Toiletries/Disinfectives)
-5. Enter rates and quantities for items
-6. Tap **Download PDF** to generate and save the invoice
-7. Use **Save** to store the bill, **Load** to recall it, **CSV** to export data
+### Picked-item tracking
+- Each item has `lastPickedAt` metadata.
+- When qty is changed to a positive value, timestamp updates.
+- Used to place newly added custom item after the most recently picked item.
 
----
+### Custom items
+- Added via floating action button.
+- Inserted after most recently picked item in current category.
+- Marked `isCustom: true` and can be removed.
 
-## Design Decisions
+### Bill Preview
+- Popup modal shows:
+  - Bill metadata (number, category, date, recipient)
+  - Table of selected items (item, qty, rate, amount)
+  - Total
+- Uses selected items only (`qty > 0` and `rate > 0`).
 
-- **No HTML preview panel** — v1 had a hidden HTML invoice that was screenshotted. v2 draws directly with jsPDF, so no preview needed
-- **PWA only, no APK** — Simpler updates (just refresh the page), no Gradle/JDK/Cordova headaches
-- **Rates persist** — Remembers your last-used rate per item via localStorage
-- **Smart pagination** — Avoids ugly 1-2 item last pages by redistributing items evenly
+### PDF generation
+- Uses jsPDF (`generatePDF()`).
+- Keeps header/meta/table/footer layout logic.
+- Smart pagination preserved.
+- Includes grand total and page numbering.
+
+### Save / Load
+- Saved bill key: `bill_<billNo>_<CategoryLabel>`.
+- Load modal lists saved bills sorted by `savedAt` descending.
+- Can load or delete saved bills.
+
+### CSV export
+- Exports selected bill rows for current category.
+- Includes grand total row.
+- File naming: `Invoice_<billNo>_<Category>.csv`.
+
+### CSV import
+- Accepts `.csv` file input.
+- Parses exported invoice format.
+- Detects category from filename where possible, otherwise infers by item overlap.
+- Maps known items, adds unknown rows as custom items.
+- Updates bill number from filename if present.
+
+### Draft persistence
+- Draft key: `activeBillDraft`.
+- Includes:
+  - current category
+  - date, recipient
+  - per-category bill numbers
+  - item rows per category
+  - custom items
+  - `lastPickedAt`
+- Draft updated on relevant user actions.
+
+### Bill numbers by category
+- Key: `billNosByCategory`.
+- Defaults:
+  - groceries: 92
+  - toiletries: 93
+  - disinfectives: 94
+- Stored independently and not auto-incremented.
+
+## 6) Current UI Organization
+
+### Main structure
+- `header.hero`: store branding + install CTA
+- `bill-strip`: date, bill no, recipient
+- `sticky-tools`:
+  - category tabs
+  - search + clear + autosave status
+- `items-panel`: item cards list
+- floating custom item button
+- summary panel (picked count + total)
+- action dock (PDF/Preview/Save/Load/Save CSV/Import CSV/Reset)
+
+### Overlays/modals
+- Numeric pad modal
+- Load bills modal
+- Preview modal
+- Toast notifications
+
+## 7) Files and Responsibilities
+
+- `index.html`
+  - app shell, toolbar, dock, modals, file input hook
+- `style.css`
+  - visual system, responsive behavior, sticky/floating controls, modal/table styles
+- `script.js`
+  - all app behavior: state, rendering, edits, autosave, preview, CSV import/export, save/load, PDF
+- `sw.js`
+  - cache install/activate/fetch handling (`mstores-v3`)
+- `manifest.json`
+  - installable PWA metadata
+- `jspdf.umd.min.js`
+  - PDF library bundle
+- `README.md`
+  - user/developer overview
+- `FORvignesh.md`
+  - this detailed handover
+
+## 8) Local Storage Keys in Use
+
+- `defaultRates`
+- `billNosByCategory`
+- `activeBillDraft`
+- `bill_<billNo>_<CategoryLabel>`
+
+## 9) Notes for Future Changes
+
+- Do not modify hardcoded category names/lists unless business asks explicitly.
+- Keep PDF layout logic stable when doing UX-only changes.
+- If changing CSV format, update both export and import parser together.
+- If changing dock buttons, also verify mobile breakpoints and floating button overlap.
+- Preserve draft compatibility (`lastPickedAt` and item fields) to avoid restore breakage.
+
+## 10) Current Status
+
+Project is in a production-ready functional state for local/PWA use with:
+- modern touch UI,
+- robust persistence,
+- preview + PDF + CSV workflows,
+- and responsive layout tuned iteratively from live usage feedback.
