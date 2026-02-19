@@ -159,18 +159,15 @@ body {
     background: #fbfdff;
     border: 1px solid #dbe5ef;
     border-radius: var(--radius-md);
-    padding: 6px 9px;
-    display: grid;
-    gap: 2px;
+    min-height: 42px;
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
 }
 
 .search-wrap span {
-    font-size: 0.7rem;
-    color: #6a8097;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    display: none;
 }
 
 .search-wrap input {
@@ -179,7 +176,8 @@ body {
     background: transparent;
     font-size: 0.98rem;
     color: #26405a;
-    min-height: 28px;
+    min-height: 40px;
+    width: 100%;
 }
 
 .search-wrap:focus-within {
@@ -426,14 +424,20 @@ main {
 }
 
 .add-custom {
-    border: 1px dashed #8bb1d8;
-    background: #f0f8ff;
-    border-radius: var(--radius-md);
-    min-height: 48px;
-    font-size: 0.98rem;
+    border: 1px solid #0e7a70;
+    background: linear-gradient(120deg, #0e7a70, #1f5ed8);
+    border-radius: 999px;
+    min-height: 52px;
+    font-size: 0.96rem;
     font-weight: 800;
-    color: #12508c;
+    color: #ffffff;
     cursor: pointer;
+    position: fixed;
+    left: 14px;
+    bottom: 176px;
+    z-index: 260;
+    padding: 0 18px;
+    box-shadow: 0 12px 22px rgba(14, 122, 112, 0.3);
 }
 
 .add-custom:active {
@@ -805,11 +809,7 @@ body.compact-top .sticky-tools {
     }
 
     .workbench {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .search-wrap {
-        grid-column: 1 / -1;
+        grid-template-columns: minmax(0, 2fr) minmax(120px, 1fr);
     }
 
     .action-dock {
@@ -841,7 +841,8 @@ body.compact-top .sticky-tools {
     }
 
     .workbench {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 2fr) minmax(110px, 1fr);
+        align-items: stretch;
     }
 
     .item-controls {
@@ -885,15 +886,12 @@ body.compact-top .sticky-tools {
     }
 
     .search-wrap {
-        padding: 4px 7px;
-    }
-
-    .search-wrap span {
-        font-size: 0.66rem;
+        min-height: 38px;
+        padding: 0 8px;
     }
 
     .search-wrap input {
-        min-height: 24px;
+        min-height: 36px;
         font-size: 0.92rem;
     }
 
@@ -913,6 +911,14 @@ body.compact-top .sticky-tools {
         bottom: 8px;
         min-height: 44px;
         min-width: 52px;
+        padding: 0 12px;
+    }
+
+    .add-custom {
+        left: 8px;
+        bottom: 160px;
+        min-height: 46px;
+        font-size: 0.9rem;
         padding: 0 12px;
     }
 }

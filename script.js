@@ -169,9 +169,9 @@ document.addEventListener('DOMContentLoaded', () => {
             recipient: recipientInput.value,
             billNos,
             states: {
-                groceries: states.groceries.map(i => ({ displayName: i.displayName, rate: i.rate, qty: i.qty, isCustom: i.isCustom })),
-                toiletries: states.toiletries.map(i => ({ displayName: i.displayName, rate: i.rate, qty: i.qty, isCustom: i.isCustom })),
-                disinfectives: states.disinfectives.map(i => ({ displayName: i.displayName, rate: i.rate, qty: i.qty, isCustom: i.isCustom }))
+                groceries: states.groceries.map(i => ({ displayName: i.displayName, rate: i.rate, qty: i.qty, isCustom: i.isCustom, lastPickedAt: i.lastPickedAt || 0 })),
+                toiletries: states.toiletries.map(i => ({ displayName: i.displayName, rate: i.rate, qty: i.qty, isCustom: i.isCustom, lastPickedAt: i.lastPickedAt || 0 })),
+                disinfectives: states.disinfectives.map(i => ({ displayName: i.displayName, rate: i.rate, qty: i.qty, isCustom: i.isCustom, lastPickedAt: i.lastPickedAt || 0 }))
             }
         };
         localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
@@ -225,14 +225,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }).flat();
     }
 
-    function createItem(displayName, rate, qty, isCustom) {
+    function createItem(displayName, rate, qty, isCustom, lastPickedAt = 0) {
         return {
             id: uniqueId++,
             displayName,
             rate: Math.max(0, Math.round(Number(rate) || 0)),
             qty: Number(qty) || 0,
             amount: Math.max(0, Math.round(Number(rate) || 0)) * (Number(qty) || 0),
-            isCustom: Boolean(isCustom)
+            isCustom: Boolean(isCustom),
+            lastPickedAt: Number(lastPickedAt) || 0
         };
     }
 
@@ -241,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function normalizeLoadedItems(items) {
-        return (items || []).map(i => createItem(i.displayName || 'Custom Item', i.rate || 0, i.qty || 0, i.isCustom));
+        return (items || []).map(i => createItem(i.displayName || 'Custom Item', i.rate || 0, i.qty || 0, i.isCustom, i.lastPickedAt || 0));
     }
 
     function getItemsListForCategory(category) {
@@ -436,7 +437,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /* ==================== ITEM ACTIONS ==================== */
     function updateQty(item, nextQty) {
+        const prevQty = item.qty;
         item.qty = Math.max(0, Math.round(nextQty));
+        if (item.qty > 0 && item.qty !== prevQty) item.lastPickedAt = Date.now();
         item.amount = item.qty * item.rate;
         refreshItemCard(item);
         updateSummary();
@@ -985,7 +988,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function addCustomItem() {
         const name = prompt('Enter custom item name');
         if (!name || !name.trim()) return;
-        getCurrentState().push(createItem(name.trim(), 0, 0, true));
+        const items = getCurrentState();
+        let insertAfterIndex = -1;
+        let latestPick = -1;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].qty > 0 && (items[i].lastPickedAt || 0) >= latestPick) {
+                latestPick = items[i].lastPickedAt || 0;
+                insertAfterIndex = i;
+            }
+        }
+        const insertAt = insertAfterIndex >= 0 ? insertAfterIndex + 1 : items.length;
+        items.splice(insertAt, 0, createItem(name.trim(), 0, 0, true));
         renderItems();
         persistDraftState();
     }
