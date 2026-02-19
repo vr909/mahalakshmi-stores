@@ -1,73 +1,108 @@
-# Mahalakshmi Stores — Billing App
+﻿# Mahalakshmi Stores Billing PWA
 
-A lightweight, offline-capable billing app built for **Mahalakshmi Stores**, a grocery shop in Coimbatore, India. Generates professional A4 PDF invoices that look identical on any device.
+A touch-first, offline-capable billing app for Mahalakshmi Stores.
 
-![PWA](https://img.shields.io/badge/PWA-Installable-blueviolet) ![Offline](https://img.shields.io/badge/Works-Offline-green) ![License](https://img.shields.io/badge/License-MIT-yellow)
+The app is optimized for fast billing on mobile/tablet, supports category-based billing, and generates consistent A4 PDF invoices using jsPDF.
 
-## Features
+## Current Highlights
 
-- **Three categories** — Groceries, Toiletries, Disinfectives with pre-loaded item lists
-- **Programmatic PDF generation** — Uses [jsPDF](https://github.com/parallax/jsPDF) for pixel-perfect, device-independent A4 invoices
-- **Smart pagination** — Multi-page support with repeated headers; avoids orphan items on the last page
-- **Save & Load bills** — Store bills in the browser and reload them anytime
-- **CSV export** — Export bill data for spreadsheet use
-- **Default rates** — Remembers item prices across sessions
-- **Custom items** — Add one-off items not in the pre-loaded list
-- **PWA** — Installable on any device, works fully offline after first visit
+- Three fixed categories with hardcoded item lists:
+  - Groceries
+  - Toiletries
+  - Disinfectives
+- Large tap-based item cards for quantity/rate entry
+- Integer rate entry with step controls and number pad
+- Strong picked-item highlight for quick scanning
+- Auto-save draft across refresh (all categories)
+- Separate bill numbers by category (defaults: 92/93/94)
+- Save/Load bills from localStorage
+- CSV export and CSV import (for app-exported invoice CSV files)
+- Bill Preview modal (quick at-a-glance table)
+- Programmatic A4 PDF generation with pagination
+- Installable PWA + offline service worker caching
+
+## Important Behavior
+
+- Item master lists and category names are fixed in code.
+- PDF layout is generated programmatically (not HTML screenshot based).
+- Custom items are supported and inserted after the most recently picked item.
+- Floating `+ Add Custom Item` button is available while scrolling.
 
 ## Tech Stack
 
-- **Vanilla HTML, CSS, JavaScript** — no frameworks, no build step
-- **jsPDF 2.5.1** — bundled locally for offline PDF generation
-- **Service Worker** — cache-first strategy for offline support
-- **localStorage** — persistent storage for bills, rates, and preferences
+- HTML, CSS, JavaScript (no framework)
+- jsPDF (bundled locally in `jspdf.umd.min.js`)
+- localStorage (drafts, rates, saved bills, category bill numbers)
+- Service Worker (`sw.js`) for offline support
 
-## Getting Started
+## Run Locally
 
-### Run Locally
+From this project folder:
 
 ```bash
-cd v2/
-python -m http.server 8080
-# Open http://localhost:8080
+python -m http.server 8080 --bind 0.0.0.0
 ```
 
-### Install as PWA
+Open on this machine:
 
-1. Deploy to any HTTPS host (GitHub Pages, Netlify, Vercel)
-2. Open the URL on your device in Chrome
-3. Tap **⋮ Menu → Add to Home screen**
-4. The app now works offline like a native app
+```text
+http://127.0.0.1:8080
+```
 
-### Deploy to GitHub Pages
+Open from another device on same Wi-Fi:
 
-1. Push this folder to a GitHub repository
-2. Go to **Settings → Pages → Deploy from branch (main)**
-3. Your app will be live at `https://username.github.io/repo-name/`
+```text
+http://<your-local-ip>:8080
+```
+
+Example:
+
+```text
+http://192.168.68.103:8080
+```
+
+If LAN access fails, check Windows Firewall and ensure both devices are on the same network.
+
+## Core User Flows
+
+### 1. Build a bill
+
+1. Select category tab
+2. Enter qty and rate for items
+3. Use Preview for quick verification
+4. Download PDF
+
+### 2. Save and resume
+
+1. Tap Save
+2. Later tap Load and restore bill
+
+### 3. CSV round trip
+
+1. Export CSV from current category bill
+2. Tap Import CSV and select that file
+3. App maps rows to known items and adds unknown rows as custom items
+
+## Data Persistence
+
+Stored in browser localStorage:
+
+- `defaultRates`
+- `billNosByCategory`
+- `activeBillDraft`
+- `bill_*` saved bill records
 
 ## File Structure
 
-```
-├── index.html           # App layout
-├── style.css            # Tablet-first responsive design
-├── script.js            # All logic: items, PDF, save/load, CSV
-├── jspdf.umd.min.js     # jsPDF library (offline bundle)
-├── manifest.json        # PWA manifest
-├── sw.js                # Service Worker for offline caching
-├── README.md            # This file
-└── LICENSE              # MIT License
-```
-
-## PDF Output
-
-Each generated invoice includes:
-- Store name and recipient address on every page
-- Bill number, category, and date
-- Column headers: S.No, Item, Rate(Rs.), Qty, Amount(Rs.)
-- Quantity shown with "Pcs" unit
-- Grand Total with "Rs." prefix
-- Page numbering (Page X of Y)
+- `index.html`: UI structure and modal shells
+- `style.css`: responsive UI styling and visual system
+- `script.js`: state, rendering, save/load, CSV import/export, preview, PDF logic
+- `jspdf.umd.min.js`: local jsPDF bundle
+- `manifest.json`: PWA manifest
+- `sw.js`: service worker cache logic
+- `README.md`: project documentation
+- `LICENSE`: MIT license
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+MIT. See `LICENSE`.

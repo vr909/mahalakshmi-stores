@@ -84,6 +84,7 @@
 
         <footer class="action-dock">
             <button id="pdfBtn" class="btn primary">Download PDF</button>
+            <button id="previewBtn" class="btn">Preview</button>
             <button id="importCsvBtn" class="btn">Import CSV</button>
             <button id="saveBtn" class="btn">Save</button>
             <button id="loadBtn" class="btn">Load</button>
@@ -117,6 +118,31 @@
                 <button id="closeModal" class="sheet-close" aria-label="Close">X</button>
             </div>
             <div id="billList" class="bill-list"></div>
+        </div>
+    </div>
+
+    <div id="previewModal" class="sheet hidden" role="dialog" aria-modal="true" aria-label="Bill preview">
+        <div class="sheet-backdrop" data-close-preview="true"></div>
+        <div class="sheet-box wide">
+            <div class="sheet-head">
+                <h2>Bill Preview</h2>
+                <button id="closePreview" class="sheet-close" aria-label="Close">X</button>
+            </div>
+            <div id="previewMeta" class="preview-meta"></div>
+            <div class="preview-table-wrap">
+                <table class="preview-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Qty</th>
+                            <th>Rate</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="previewBody"></tbody>
+                </table>
+            </div>
+            <div id="previewTotal" class="preview-total">Total: Rs.0.00</div>
         </div>
     </div>
 

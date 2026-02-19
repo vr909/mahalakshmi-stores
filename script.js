@@ -92,9 +92,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let searchQuery = '';
 
     const modeDecor = {
-        groceries: { icon: 'Basket', accent: '#0f766e' },
+        groceries: { icon: 'Basket', accent: '#b45309' },
         toiletries: { icon: 'Sparkle', accent: '#b45309' },
-        disinfectives: { icon: 'Shield', accent: '#1d4ed8' }
+        disinfectives: { icon: 'Shield', accent: '#b45309' }
     };
 
     /* ==================== DOM REFS ==================== */
@@ -717,7 +717,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 rate: i.rate,
                 qty: i.qty,
                 amount: i.amount,
-                isCustom: i.isCustom
+                isCustom: i.isCustom,
+                lastPickedAt: i.lastPickedAt || 0
             })),
             total: getCurrentState().reduce((s, i) => s + i.amount, 0),
             savedAt: new Date().toISOString()
@@ -808,6 +809,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function closeLoadModal() {
         document.getElementById('loadModal').classList.add('hidden');
+    }
+
+    function showPreviewModal() {
+        const items = getCurrentState().filter(i => i.qty > 0 && i.rate > 0);
+        if (items.length === 0) {
+            showToast('No items to preview', 'error');
+            return;
+        }
+
+        const catLabel = { groceries: 'Groceries', toiletries: 'Toiletries', disinfectives: 'Disinfectives' }[currentMode];
+        const previewMeta = document.getElementById('previewMeta');
+        const previewBody = document.getElementById('previewBody');
+        const previewTotal = document.getElementById('previewTotal');
+
+        previewMeta.innerHTML =
+            '<strong>Bill No:</strong> ' + (billNoInput.value || '-') +
+            ' | <strong>Category:</strong> ' + catLabel +
+            ' | <strong>Date:</strong> ' + (billDateInput.value || '-') +
+            '<br><strong>Recipient:</strong> ' + (recipientInput.value || '-');
+
+        previewBody.innerHTML = items.map(it =>
+            '<tr>' +
+            '<td>' + escapeHtml(it.displayName) + '</td>' +
+            '<td>' + it.qty + '</td>' +
+            '<td>Rs.' + Math.round(it.rate) + '</td>' +
+            '<td>Rs.' + it.amount.toFixed(2) + '</td>' +
+            '</tr>'
+        ).join('');
+
+        const total = items.reduce((sum, i) => sum + i.amount, 0);
+        previewTotal.textContent = 'Total: Rs.' + total.toFixed(2);
+
+        document.getElementById('previewModal').classList.remove('hidden');
+    }
+
+    function closePreviewModal() {
+        document.getElementById('previewModal').classList.add('hidden');
+    }
+
+    function escapeHtml(text) {
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
     /* ==================== CSV EXPORT ==================== */
@@ -1077,6 +1124,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /* ==================== WIRE BUTTONS ==================== */
     document.getElementById('pdfBtn').addEventListener('click', generatePDF);
+    document.getElementById('previewBtn').addEventListener('click', showPreviewModal);
     document.getElementById('importCsvBtn').addEventListener('click', () => csvImportInput?.click());
     document.getElementById('saveBtn').addEventListener('click', saveBill);
     document.getElementById('loadBtn').addEventListener('click', showLoadModal);
@@ -1085,6 +1133,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('resetBtn').addEventListener('click', resetCurrentBill);
     document.getElementById('closeModal').addEventListener('click', closeLoadModal);
     document.querySelector('[data-close-load="true"]')?.addEventListener('click', closeLoadModal);
+    document.getElementById('closePreview').addEventListener('click', closePreviewModal);
+    document.querySelector('[data-close-preview="true"]')?.addEventListener('click', closePreviewModal);
     billNoInput.addEventListener('input', () => {
         billNos[currentMode] = billNoInput.value.trim() || billNos[currentMode];
         persistBillNosByCategory();
