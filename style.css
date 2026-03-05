@@ -126,7 +126,7 @@ body {
 .category-tabs {
     display: grid;
     gap: 10px;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     padding: 4px;
     border-radius: 12px;
     background: linear-gradient(120deg, rgba(14, 122, 112, 0.08), rgba(31, 94, 216, 0.08));
@@ -282,6 +282,53 @@ main {
     padding: 22px 14px;
     text-align: center;
     font-weight: 700;
+}
+
+.veg-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border: 1px solid #d9e5f1;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.veg-table th,
+.veg-table td {
+    border-bottom: 1px solid #edf2f7;
+    padding: 8px;
+    vertical-align: middle;
+}
+
+.veg-table th {
+    background: #f8fbff;
+    color: #2e4f72;
+    text-align: left;
+    font-size: 0.86rem;
+    font-weight: 800;
+}
+
+.veg-input {
+    width: 100%;
+    min-height: 34px;
+    border: 1px solid #cbd7e5;
+    border-radius: 8px;
+    padding: 0 8px;
+    font-size: 0.92rem;
+    background: #fff;
+    color: #1f3f61;
+}
+
+.veg-amt {
+    white-space: nowrap;
+    font-weight: 800;
+    color: #165f48;
+}
+
+.veg-table .remove-custom {
+    margin-left: 8px;
+    padding: 4px 8px;
+    font-size: 0.74rem;
 }
 
 .item-card {
@@ -871,6 +918,10 @@ body.compact-top .sticky-tools {
 
     .workbench {
         grid-template-columns: minmax(0, 2fr) minmax(120px, 1fr);
+    }
+
+    .category-tabs {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .action-dock {
