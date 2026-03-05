@@ -6,20 +6,36 @@ The app is optimized for fast billing on mobile/tablet, supports category-based 
 
 ## Current Highlights
 
-- Three fixed categories with hardcoded item lists:
+- Fixed categories with hardcoded item lists:
   - Groceries
   - Toiletries
   - Disinfectives
-- Large tap-based item cards for quantity/rate entry
+  - Vegetables
+  - Milk
+- Tap-first billing UI for core categories (Groceries/Toiletries/Disinfectives)
+- Simple table entry UI for Vegetables and Milk with unit support
 - Integer rate entry with step controls and number pad
 - Strong picked-item highlight for quick scanning
 - Auto-save draft across refresh (all categories)
-- Separate bill numbers by category (defaults: 92/93/94)
+- Separate bill numbers by category
 - Save/Load bills from localStorage
-- CSV export and CSV import (for app-exported invoice CSV files)
+- CSV export and CSV import (app-exported invoice format)
 - Bill Preview modal (quick at-a-glance table)
 - Programmatic A4 PDF generation with pagination
 - Installable PWA + offline service worker caching
+
+## Category-Specific Input Behavior
+
+- Groceries / Toiletries / Disinfectives:
+  - Card-based UI
+  - Qty and Rate controls
+  - Custom items supported
+- Vegetables:
+  - Table UI with columns: Item, Rate, Qty, Unit, Amount
+  - Unit selectable: `Kgs` or `Pcs`
+- Milk:
+  - Table UI with one item: `Milk`
+  - Unit fixed as `Litres`
 
 ## Important Behavior
 
@@ -27,6 +43,7 @@ The app is optimized for fast billing on mobile/tablet, supports category-based 
 - PDF layout is generated programmatically (not HTML screenshot based).
 - Custom items are supported and inserted after the most recently picked item.
 - Floating `+ Add Custom Item` button is available while scrolling.
+- PDF style remains consistent across all categories.
 
 ## Tech Stack
 
@@ -53,12 +70,6 @@ Open from another device on same Wi-Fi:
 
 ```text
 http://<your-local-ip>:8080
-```
-
-Example:
-
-```text
-http://192.168.68.103:8080
 ```
 
 If LAN access fails, check Windows Firewall and ensure both devices are on the same network.
@@ -92,6 +103,14 @@ Stored in browser localStorage:
 - `activeBillDraft`
 - `bill_*` saved bill records
 
+## Bill Number Defaults by Category
+
+- Groceries: `92`
+- Toiletries: `93`
+- Disinfectives: `94`
+- Vegetables: `95`
+- Milk: `96`
+
 ## File Structure
 
 - `index.html`: UI structure and modal shells
@@ -101,6 +120,7 @@ Stored in browser localStorage:
 - `manifest.json`: PWA manifest
 - `sw.js`: service worker cache logic
 - `README.md`: project documentation
+- `FORvignesh.md`: detailed handover
 - `LICENSE`: MIT license
 
 ## License

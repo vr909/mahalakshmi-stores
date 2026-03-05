@@ -96,6 +96,10 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: "Eggs", defaultUnit: "Pcs" }
     ];
 
+    const MILK_ITEMS = [
+        { name: "Milk", defaultUnit: "Litres" }
+    ];
+
     /* ==================== STATE ==================== */
     const DRAFT_KEY = 'activeBillDraft';
     let uniqueId = 1;
@@ -105,7 +109,8 @@ document.addEventListener('DOMContentLoaded', () => {
         groceries: buildState(GROCERY_ITEMS),
         toiletries: buildState(TOILETRY_ITEMS),
         disinfectives: buildState(DISINFECTIVE_ITEMS),
-        vegetables: buildState(VEGETABLE_ITEMS)
+        vegetables: buildState(VEGETABLE_ITEMS),
+        milk: buildState(MILK_ITEMS)
     };
 
     let deferredPrompt = null;
@@ -116,7 +121,8 @@ document.addEventListener('DOMContentLoaded', () => {
         groceries: { icon: 'Basket', accent: '#b45309' },
         toiletries: { icon: 'Sparkle', accent: '#b45309' },
         disinfectives: { icon: 'Shield', accent: '#b45309' },
-        vegetables: { icon: 'Leaf', accent: '#b45309' }
+        vegetables: { icon: 'Leaf', accent: '#b45309' },
+        milk: { icon: 'Drop', accent: '#b45309' }
     };
 
     /* ==================== DOM REFS ==================== */
@@ -166,14 +172,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getBillNosByCategory() {
-        const defaults = { groceries: '92', toiletries: '93', disinfectives: '94', vegetables: '95' };
+        const defaults = { groceries: '92', toiletries: '93', disinfectives: '94', vegetables: '95', milk: '96' };
         try {
             const saved = JSON.parse(localStorage.getItem('billNosByCategory') || '{}');
             return {
                 groceries: String(saved.groceries || defaults.groceries),
                 toiletries: String(saved.toiletries || defaults.toiletries),
                 disinfectives: String(saved.disinfectives || defaults.disinfectives),
-                vegetables: String(saved.vegetables || defaults.vegetables)
+                vegetables: String(saved.vegetables || defaults.vegetables),
+                milk: String(saved.milk || defaults.milk)
             };
         } catch {
             return defaults;
@@ -195,7 +202,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 groceries: states.groceries.map(i => ({ displayName: i.displayName, rate: i.rate, qty: i.qty, isCustom: i.isCustom, lastPickedAt: i.lastPickedAt || 0 })),
                 toiletries: states.toiletries.map(i => ({ displayName: i.displayName, rate: i.rate, qty: i.qty, isCustom: i.isCustom, lastPickedAt: i.lastPickedAt || 0 })),
                 disinfectives: states.disinfectives.map(i => ({ displayName: i.displayName, rate: i.rate, qty: i.qty, isCustom: i.isCustom, lastPickedAt: i.lastPickedAt || 0 })),
-                vegetables: states.vegetables.map(i => ({ displayName: i.displayName, rate: i.rate, qty: i.qty, isCustom: i.isCustom, lastPickedAt: i.lastPickedAt || 0, unit: i.unit || 'Kgs' }))
+                vegetables: states.vegetables.map(i => ({ displayName: i.displayName, rate: i.rate, qty: i.qty, isCustom: i.isCustom, lastPickedAt: i.lastPickedAt || 0, unit: i.unit || 'Kgs' })),
+                milk: states.milk.map(i => ({ displayName: i.displayName, rate: i.rate, qty: i.qty, isCustom: i.isCustom, lastPickedAt: i.lastPickedAt || 0, unit: i.unit || 'Litres' }))
             }
         };
         localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
@@ -214,7 +222,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     groceries: String(draft.billNos.groceries || billNos.groceries),
                     toiletries: String(draft.billNos.toiletries || billNos.toiletries),
                     disinfectives: String(draft.billNos.disinfectives || billNos.disinfectives),
-                    vegetables: String(draft.billNos.vegetables || billNos.vegetables)
+                    vegetables: String(draft.billNos.vegetables || billNos.vegetables),
+                    milk: String(draft.billNos.milk || billNos.milk)
                 };
                 persistBillNosByCategory();
             }
@@ -223,10 +232,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (Array.isArray(draft.states.groceries)) states.groceries = normalizeLoadedItems(draft.states.groceries);
                 if (Array.isArray(draft.states.toiletries)) states.toiletries = normalizeLoadedItems(draft.states.toiletries);
                 if (Array.isArray(draft.states.disinfectives)) states.disinfectives = normalizeLoadedItems(draft.states.disinfectives);
-                if (Array.isArray(draft.states.vegetables)) states.vegetables = normalizeLoadedItems(draft.states.vegetables, true);
+                if (Array.isArray(draft.states.vegetables)) states.vegetables = normalizeLoadedItems(draft.states.vegetables, 'Kgs');
+                if (Array.isArray(draft.states.milk)) states.milk = normalizeLoadedItems(draft.states.milk, 'Litres');
             }
 
-            if (draft.currentMode && ['groceries', 'toiletries', 'disinfectives', 'vegetables'].includes(draft.currentMode)) {
+            if (draft.currentMode && ['groceries', 'toiletries', 'disinfectives', 'vegetables', 'milk'].includes(draft.currentMode)) {
                 currentMode = draft.currentMode;
             }
             if (typeof draft.billDate === 'string' && draft.billDate) billDateInput.value = draft.billDate;
@@ -269,14 +279,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return states[currentMode];
     }
 
-    function normalizeLoadedItems(items, defaultKgs = false) {
+    function normalizeLoadedItems(items, defaultUnit = 'Pcs') {
         return (items || []).map(i => createItem(
             i.displayName || 'Custom Item',
             i.rate || 0,
             i.qty || 0,
             i.isCustom,
             i.lastPickedAt || 0,
-            i.unit || (defaultKgs ? 'Kgs' : 'Pcs')
+            i.unit || defaultUnit
         ));
     }
 
@@ -284,6 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (category === 'groceries') return GROCERY_ITEMS;
         if (category === 'toiletries') return TOILETRY_ITEMS;
         if (category === 'vegetables') return VEGETABLE_ITEMS;
+        if (category === 'milk') return MILK_ITEMS;
         return DISINFECTIVE_ITEMS;
     }
 
@@ -292,7 +303,8 @@ document.addEventListener('DOMContentLoaded', () => {
             groceries: 'Groceries',
             toiletries: 'Toiletries',
             disinfectives: 'Disinfectives',
-            vegetables: 'Vegetables'
+            vegetables: 'Vegetables',
+            milk: 'Milk'
         }[category] || 'Category';
     }
 
@@ -336,8 +348,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (currentMode === 'vegetables') {
-            renderVegetableTable(filteredItems);
+        if (currentMode === 'vegetables' || currentMode === 'milk') {
+            renderUnitTable(filteredItems, currentMode);
             return;
         }
 
@@ -384,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function renderVegetableTable(items) {
+    function renderUnitTable(items, mode) {
         const table = document.createElement('table');
         table.className = 'veg-table';
         table.innerHTML = '<thead><tr><th>Item</th><th>Rate</th><th>Qty</th><th>Unit</th><th>Amount</th></tr></thead>';
@@ -425,13 +437,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const qtyInput = document.createElement('input');
             qtyInput.type = 'number';
             qtyInput.min = '0';
-            qtyInput.step = item.unit === 'Kgs' ? '0.25' : '1';
+            qtyInput.step = (item.unit === 'Kgs' || item.unit === 'Litres') ? '0.25' : '1';
             qtyInput.value = item.qty || '';
             qtyInput.className = 'veg-input';
             qtyInput.addEventListener('input', () => {
                 const prevQty = item.qty;
                 const raw = Number(qtyInput.value) || 0;
-                item.qty = item.unit === 'Kgs' ? Math.max(0, Math.round(raw * 100) / 100) : Math.max(0, Math.round(raw));
+                item.qty = (item.unit === 'Kgs' || item.unit === 'Litres')
+                    ? Math.max(0, Math.round(raw * 100) / 100)
+                    : Math.max(0, Math.round(raw));
                 if (item.qty > 0 && item.qty !== prevQty) item.lastPickedAt = Date.now();
                 item.amount = item.rate * item.qty;
                 tdAmt.textContent = 'Rs.' + item.amount.toFixed(2);
@@ -441,25 +455,33 @@ document.addEventListener('DOMContentLoaded', () => {
             tdQty.appendChild(qtyInput);
 
             const tdUnit = document.createElement('td');
-            const unitSelect = document.createElement('select');
-            unitSelect.className = 'veg-input';
-            ['Kgs', 'Pcs'].forEach(u => {
-                const opt = document.createElement('option');
-                opt.value = u;
-                opt.textContent = u;
-                opt.selected = item.unit === u;
-                unitSelect.appendChild(opt);
-            });
-            unitSelect.addEventListener('change', () => {
-                item.unit = unitSelect.value;
-                if (item.unit === 'Pcs') item.qty = Math.round(item.qty || 0);
-                qtyInput.step = item.unit === 'Kgs' ? '0.25' : '1';
-                qtyInput.value = item.qty || '';
-                item.amount = item.rate * item.qty;
-                tdAmt.textContent = 'Rs.' + item.amount.toFixed(2);
-                persistDraftState();
-            });
-            tdUnit.appendChild(unitSelect);
+            if (mode === 'milk') {
+                item.unit = 'Litres';
+                const unitText = document.createElement('span');
+                unitText.className = 'veg-unit-text';
+                unitText.textContent = 'Litres';
+                tdUnit.appendChild(unitText);
+            } else {
+                const unitSelect = document.createElement('select');
+                unitSelect.className = 'veg-input';
+                ['Kgs', 'Pcs'].forEach(u => {
+                    const opt = document.createElement('option');
+                    opt.value = u;
+                    opt.textContent = u;
+                    opt.selected = item.unit === u;
+                    unitSelect.appendChild(opt);
+                });
+                unitSelect.addEventListener('change', () => {
+                    item.unit = unitSelect.value;
+                    if (item.unit === 'Pcs') item.qty = Math.round(item.qty || 0);
+                    qtyInput.step = item.unit === 'Kgs' ? '0.25' : '1';
+                    qtyInput.value = item.qty || '';
+                    item.amount = item.rate * item.qty;
+                    tdAmt.textContent = 'Rs.' + item.amount.toFixed(2);
+                    persistDraftState();
+                });
+                tdUnit.appendChild(unitSelect);
+            }
 
             const tdAmt = document.createElement('td');
             tdAmt.className = 'veg-amt';
@@ -807,7 +829,9 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let i = start; i < end; i++) {
                 const it = items[i];
                 const unit = it.unit || 'Pcs';
-                const qtyText = (unit === 'Kgs' ? Number(it.qty).toFixed(2).replace(/\.00$/, '') : String(Math.round(it.qty))) + ' ' + unit;
+                const qtyText = ((unit === 'Kgs' || unit === 'Litres')
+                    ? Number(it.qty).toFixed(2).replace(/\.00$/, '')
+                    : String(Math.round(it.qty))) + ' ' + unit;
                 doc.text(String(sNo), C.sno + 6, y, { align: 'center' });
                 doc.text(it.displayName, C.item, y);
                 doc.text(String(Math.round(it.rate)), C.rate + 12, y, { align: 'right' });
@@ -888,7 +912,10 @@ document.addEventListener('DOMContentLoaded', () => {
             billDateInput.value = data.date || new Date().toISOString().slice(0, 10);
             recipientInput.value = data.recipient || 'Access Life Assistance';
 
-            states[currentMode] = normalizeLoadedItems(data.items, currentMode === 'vegetables');
+            states[currentMode] = normalizeLoadedItems(
+                data.items,
+                currentMode === 'vegetables' ? 'Kgs' : (currentMode === 'milk' ? 'Litres' : 'Pcs')
+            );
             renderItems();
             updateSummary();
             persistDraftState();
@@ -977,7 +1004,7 @@ document.addEventListener('DOMContentLoaded', () => {
         previewBody.innerHTML = items.map(it =>
             '<tr>' +
             '<td>' + escapeHtml(it.displayName) + '</td>' +
-            '<td>' + it.qty + ' ' + (it.unit || 'Pcs') + '</td>' +
+            '<td>' + formatQtyWithUnit(it.qty, it.unit || 'Pcs') + '</td>' +
             '<td>Rs.' + Math.round(it.rate) + '</td>' +
             '<td>Rs.' + it.amount.toFixed(2) + '</td>' +
             '</tr>'
@@ -1014,8 +1041,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let csv = 'S.No,Item,Rate,Qty,Amount\n';
 
         items.forEach((it, i) => {
-            const qtyValue = currentMode === 'vegetables'
-                ? ('"' + it.qty + ' ' + (it.unit || 'Kgs') + '"')
+            const qtyValue = (currentMode === 'vegetables' || currentMode === 'milk')
+                ? ('"' + formatQtyWithUnit(it.qty, it.unit || (currentMode === 'milk' ? 'Litres' : 'Kgs')) + '"')
                 : it.qty;
             csv += (i + 1) + ',"' + it.displayName.replace(/"/g, '""') + '",' + Math.round(it.rate) + ',' + qtyValue + ',' + it.amount.toFixed(2) + '\n';
         });
@@ -1058,8 +1085,8 @@ document.addEventListener('DOMContentLoaded', () => {
             rows.forEach(r => {
                 const key = r.item.trim().toLowerCase();
                 const rate = Math.max(0, Math.round(r.rate));
-                const unit = r.unit || (detectedCategory === 'vegetables' ? 'Kgs' : 'Pcs');
-                const qty = detectedCategory === 'vegetables' && unit === 'Kgs'
+                const unit = r.unit || (detectedCategory === 'vegetables' ? 'Kgs' : (detectedCategory === 'milk' ? 'Litres' : 'Pcs'));
+                const qty = (detectedCategory === 'vegetables' && unit === 'Kgs') || (detectedCategory === 'milk' && unit === 'Litres')
                     ? Math.max(0, Math.round(r.qty * 100) / 100)
                     : Math.max(0, Math.round(r.qty));
                 if (qty <= 0 || rate <= 0) return;
@@ -1068,11 +1095,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (existing) {
                     existing.rate = rate;
                     existing.qty = qty;
-                    if (detectedCategory === 'vegetables') existing.unit = unit;
+                    if (detectedCategory === 'vegetables' || detectedCategory === 'milk') existing.unit = unit;
                     existing.amount = rate * qty;
                     saveDefaultRate(existing.displayName, rate);
                 } else {
-                    loadedState.push(createItem(r.item.trim(), rate, qty, true, 0, detectedCategory === 'vegetables' ? unit : 'Pcs'));
+                    loadedState.push(createItem(
+                        r.item.trim(),
+                        rate,
+                        qty,
+                        true,
+                        0,
+                        detectedCategory === 'vegetables' ? unit : (detectedCategory === 'milk' ? unit : 'Pcs')
+                    ));
                     saveDefaultRate(r.item.trim(), rate);
                 }
             });
@@ -1131,7 +1165,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const text = String(qtyRaw || '').trim();
         const qty = parseFloat(text);
         const lower = text.toLowerCase();
-        const unit = lower.includes('kg') ? 'Kgs' : (lower.includes('pc') ? 'Pcs' : '');
+        const unit = lower.includes('kg')
+            ? 'Kgs'
+            : (lower.includes('pc')
+                ? 'Pcs'
+                : ((lower.includes('litre') || lower.includes('liter') || lower.includes('ltr') || lower.includes('lt')) ? 'Litres' : ''));
         return { qty, unit };
     }
 
@@ -1167,11 +1205,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (n.includes('_toiletries')) return 'toiletries';
         if (n.includes('_disinfectives')) return 'disinfectives';
         if (n.includes('_vegetables')) return 'vegetables';
+        if (n.includes('_milk')) return 'milk';
         return null;
     }
 
     function detectBillNoFromFileName(name) {
-        const match = (name || '').match(/^Invoice_(.+?)_(Groceries|Toiletries|Disinfectives|Vegetables)\.csv$/i);
+        const match = (name || '').match(/^Invoice_(.+?)_(Groceries|Toiletries|Disinfectives|Vegetables|Milk)\.csv$/i);
         return match ? match[1] : '';
     }
 
@@ -1188,7 +1227,8 @@ document.addEventListener('DOMContentLoaded', () => {
             { c: 'groceries', s: score('groceries') },
             { c: 'toiletries', s: score('toiletries') },
             { c: 'disinfectives', s: score('disinfectives') },
-            { c: 'vegetables', s: score('vegetables') }
+            { c: 'vegetables', s: score('vegetables') },
+            { c: 'milk', s: score('milk') }
         ].sort((a, b) => b.s - a.s);
         return candidates[0].s > 0 ? candidates[0].c : currentMode;
     }
@@ -1207,9 +1247,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         const insertAt = insertAfterIndex >= 0 ? insertAfterIndex + 1 : items.length;
-        items.splice(insertAt, 0, createItem(name.trim(), 0, 0, true, 0, currentMode === 'vegetables' ? 'Kgs' : 'Pcs'));
+        items.splice(
+            insertAt,
+            0,
+            createItem(name.trim(), 0, 0, true, 0, currentMode === 'vegetables' ? 'Kgs' : (currentMode === 'milk' ? 'Litres' : 'Pcs'))
+        );
         renderItems();
         persistDraftState();
+    }
+
+    function formatQtyWithUnit(qty, unit) {
+        const u = unit || 'Pcs';
+        const q = (u === 'Kgs' || u === 'Litres')
+            ? Number(qty || 0).toFixed(2).replace(/\.00$/, '')
+            : String(Math.round(Number(qty) || 0));
+        return q + ' ' + u;
     }
 
     function resetCurrentBill() {
