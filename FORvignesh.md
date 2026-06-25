@@ -92,14 +92,14 @@ No auto-increment.
 - Auto-save draft across categories (`activeBillDraft`)
 - Save/Load bill records (`bill_*` keys)
 - Default rate memory (`defaultRates`)
-- Preview modal (quick bill inspection)
+- Check Bill modal (quick bill inspection)
 - CSV export/import
 - Programmatic PDF generation (A4 + pagination)
-- PWA install support + offline cache (`mstores-v3`)
+- PWA install support + offline cache (`mstores-v6`)
 
 ## 8) Custom Item Rules
 
-- Floating `+ Add Custom Item` button
+- Floating `+ Add Item` button
 - Inserts custom item after the **most recently picked item**
 - Applies in runtime order and reflected in output order
 
@@ -135,7 +135,7 @@ Formatting updates applied to:
 
 ## 11) Preview Behavior
 
-Bill Preview modal shows:
+Check Bill modal shows:
 - Bill meta (number, category, date, recipient)
 - Item rows (Item, Qty+Unit, Rate, Amount)
 - Total
@@ -153,11 +153,10 @@ Bill Preview modal shows:
 - Search and Clear Search on same row for space efficiency
 - Category selector prominence tuned
 - Floating Top button
-- Floating Add Custom Item button
+- Floating Add Item button
 - Dock layout:
-  - PDF as full-width primary row
-  - Preview/Save/Load row
-  - Save CSV/Import CSV/Reset row
+  - Check Bill / Print Bill / More
+  - Save, Load, CSV, Import, and Clear Current Bill live behind More
 
 ## 14) Local Storage Keys in Use
 

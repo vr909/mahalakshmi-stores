@@ -28,9 +28,10 @@
         </header>
 
         <section class="bill-strip" aria-label="Bill details">
-            <label class="pill-input">
+            <label class="pill-input pill-date" id="billDateField">
                 <span>Date</span>
-                <input type="date" id="billDate">
+                <input type="text" id="billDate" inputmode="numeric" autocomplete="off" placeholder="dd/mm/yyyy" maxlength="10" readonly>
+                <input type="date" id="billDatePicker" class="date-picker-native" tabindex="-1">
             </label>
             <label class="pill-input">
                 <span>Bill No</span>
@@ -74,7 +75,7 @@
         <main>
             <section class="items-panel" id="itemsPanel" aria-label="Items"></section>
 
-            <button id="addItemBtn" class="add-custom">+ Add Custom Item</button>
+            <button id="addItemBtn" class="add-custom">+ Add Item</button>
 
             <section class="summary-panel" aria-label="Bill summary">
                 <div class="summary-kpi">
@@ -89,13 +90,9 @@
         </main>
 
         <footer class="action-dock">
-            <button id="pdfBtn" class="btn primary">Download PDF</button>
-            <button id="previewBtn" class="btn">Preview</button>
-            <button id="saveBtn" class="btn">Save</button>
-            <button id="loadBtn" class="btn">Load</button>
-            <button id="csvBtn" class="btn">Save CSV</button>
-            <button id="importCsvBtn" class="btn">Import CSV</button>
-            <button id="resetBtn" class="btn danger">Reset</button>
+            <button id="previewBtn" class="btn">Check Bill</button>
+            <button id="pdfBtn" class="btn primary">Print Bill</button>
+            <button id="moreBtn" class="btn">More</button>
         </footer>
     </div>
 
@@ -127,11 +124,11 @@
         </div>
     </div>
 
-    <div id="previewModal" class="sheet hidden" role="dialog" aria-modal="true" aria-label="Bill preview">
+    <div id="previewModal" class="sheet hidden" role="dialog" aria-modal="true" aria-label="Check bill">
         <div class="sheet-backdrop" data-close-preview="true"></div>
         <div class="sheet-box wide">
             <div class="sheet-head">
-                <h2>Bill Preview</h2>
+                <h2>Check Bill</h2>
                 <button id="closePreview" class="sheet-close" aria-label="Close">X</button>
             </div>
             <div id="previewMeta" class="preview-meta"></div>
@@ -152,6 +149,23 @@
         </div>
     </div>
 
+    <div id="moreModal" class="sheet hidden" role="dialog" aria-modal="true" aria-label="More actions">
+        <div class="sheet-backdrop" data-close-more="true"></div>
+        <div class="sheet-box">
+            <div class="sheet-head">
+                <h2>More Actions</h2>
+                <button id="closeMore" class="sheet-close" aria-label="Close">X</button>
+            </div>
+            <div class="more-actions">
+                <button id="saveBtn" class="btn">Save Bill</button>
+                <button id="loadBtn" class="btn">Load Bill</button>
+                <button id="csvBtn" class="btn">Save CSV</button>
+                <button id="importCsvBtn" class="btn">Import CSV</button>
+                <button id="resetBtn" class="btn danger">Clear Current Bill</button>
+            </div>
+        </div>
+    </div>
+
     <div id="toast" class="toast hidden"></div>
     <button id="backToTopBtn" class="back-top hidden" aria-label="Back to top">Top</button>
     <input id="csvImportInput" type="file" accept=".csv,text/csv" class="hidden">
@@ -160,3 +174,4 @@
 </body>
 
 </html>
+

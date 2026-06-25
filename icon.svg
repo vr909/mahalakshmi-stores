@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Mahalakshmi Stores">
+    <rect width="512" height="512" rx="96" fill="#0f766e"/>
+    <path d="M112 168h288l-24 216H136L112 168Z" fill="#ffffff"/>
+    <path d="M156 168c12-58 48-88 100-88s88 30 100 88" fill="none" stroke="#ffffff" stroke-width="38" stroke-linecap="round"/>
+    <path d="M162 224h188M162 282h188M162 340h126" stroke="#0f766e" stroke-width="28" stroke-linecap="round"/>
+    <circle cx="372" cy="344" r="30" fill="#1f5ed8"/>
+</svg>

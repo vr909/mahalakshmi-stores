@@ -1,11 +1,12 @@
-﻿const CACHE_NAME = 'mstores-v3';
+const CACHE_NAME = 'mstores-v6';
 const ASSETS = [
     './',
     './index.html',
     './style.css',
     './script.js',
     './jspdf.umd.min.js',
-    './manifest.json'
+    './manifest.json',
+    './icon.svg'
 ];
 
 self.addEventListener('install', event => {

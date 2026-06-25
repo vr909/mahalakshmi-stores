@@ -20,7 +20,7 @@ The app is optimized for fast billing on mobile/tablet, supports category-based 
 - Separate bill numbers by category
 - Save/Load bills from localStorage
 - CSV export and CSV import (app-exported invoice format)
-- Bill Preview modal (quick at-a-glance table)
+- Check Bill modal (quick at-a-glance table)
 - Programmatic A4 PDF generation with pagination
 - Installable PWA + offline service worker caching
 
@@ -42,7 +42,8 @@ The app is optimized for fast billing on mobile/tablet, supports category-based 
 - Item master lists and category names are fixed in code.
 - PDF layout is generated programmatically (not HTML screenshot based).
 - Custom items are supported and inserted after the most recently picked item.
-- Floating `+ Add Custom Item` button is available while scrolling.
+- Floating `+ Add Item` button is available while scrolling.
+- Main portrait workflow keeps only Check Bill, Print Bill, and More visible.
 - PDF style remains consistent across all categories.
 
 ## Tech Stack
@@ -80,8 +81,8 @@ If LAN access fails, check Windows Firewall and ensure both devices are on the s
 
 1. Select category tab
 2. Enter qty and rate for items
-3. Use Preview for quick verification
-4. Download PDF
+3. Use Check Bill for quick verification
+4. Print Bill
 
 ### 2. Save and resume
 

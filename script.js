@@ -129,7 +129,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const itemsPanel = document.getElementById('itemsPanel');
     const totalDisplay = document.getElementById('totalDisplay');
     const pickedCount = document.getElementById('pickedCount');
+    const billDateField = document.getElementById('billDateField');
     const billDateInput = document.getElementById('billDate');
+    const billDatePicker = document.getElementById('billDatePicker');
     const billNoInput = document.getElementById('billNo');
     const recipientInput = document.getElementById('recipient');
     const installBtn = document.getElementById('installBtn');
@@ -145,7 +147,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const padGrid = document.getElementById('padGrid');
 
     /* ==================== INIT ==================== */
-    billDateInput.value = new Date().toISOString().slice(0, 10);
+    billDateInput.value = getLocalDateInputValue();
+    billDatePicker.value = toIsoDateValue(billDateInput.value);
     billNoInput.value = billNos[currentMode];
     hydrateDraftState();
     initNumberPad();
@@ -239,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (draft.currentMode && ['groceries', 'toiletries', 'disinfectives', 'vegetables', 'milk'].includes(draft.currentMode)) {
                 currentMode = draft.currentMode;
             }
-            if (typeof draft.billDate === 'string' && draft.billDate) billDateInput.value = draft.billDate;
+            if (typeof draft.billDate === 'string' && draft.billDate) setBillDateValue(draft.billDate);
             if (typeof draft.recipient === 'string' && draft.recipient) recipientInput.value = draft.recipient;
             billNoInput.value = billNos[currentMode];
         } catch {
@@ -478,6 +481,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     qtyInput.value = item.qty || '';
                     item.amount = item.rate * item.qty;
                     tdAmt.textContent = 'Rs.' + item.amount.toFixed(2);
+                    updateSummary();
                     persistDraftState();
                 });
                 tdUnit.appendChild(unitSelect);
@@ -753,23 +757,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const META_LINE_Y = 35;
         const COL_HDR_Y = 47;
         const DATA_START_Y = 52;
-        const ROW_H = 8;
+        const NORMAL_ROW_H = 7.2;
+        const COMPACT_ROW_H = 6.6;
         const FOOTER_Y = PH - M - 3;
         const GRAND_TOTAL_H = 10;
+        const STANDARD_PAGE_LIMIT = 30;
+        const ONE_PAGE_OVERFLOW_LIMIT = 31;
+        const rowH = items.length === ONE_PAGE_OVERFLOW_LIMIT ? COMPACT_ROW_H : NORMAL_ROW_H;
+        const isCompactOnePage = items.length === ONE_PAGE_OVERFLOW_LIMIT;
+        const bodyFontSize = isCompactOnePage ? 10.3 : 11;
 
-        // Rows per page
-        const maxRows = Math.floor((FOOTER_Y - DATA_START_Y - GRAND_TOTAL_H) / ROW_H);
-        let rowsPerPage = Math.min(maxRows, 30);
-
-        // Smart fit: avoid <=2 orphan items on last page
-        let totalPages = Math.ceil(items.length / rowsPerPage);
-        if (totalPages > 1) {
-            const lastCount = items.length - (totalPages - 1) * rowsPerPage;
-            if (lastCount <= 2) {
-                rowsPerPage = Math.ceil(items.length / totalPages);
-            }
-        }
-        totalPages = Math.ceil(items.length / rowsPerPage);
+        // Standard pages hold 30 rows. Exactly 31 rows stays on one page.
+        const maxRows = Math.floor((FOOTER_Y - DATA_START_Y - GRAND_TOTAL_H) / rowH);
+        const standardRowsPerPage = Math.min(maxRows, STANDARD_PAGE_LIMIT);
+        const pageRanges = getPdfPageRanges(items.length, standardRowsPerPage, ONE_PAGE_OVERFLOW_LIMIT);
+        const totalPages = pageRanges.length;
 
         // Bill info
         const billNo = billNoInput.value || '-';
@@ -784,17 +786,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (pg > 0) doc.addPage();
 
             // HEADER
-            doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9.5); doc.setFont('helvetica', 'normal');
             doc.text('From', LEFT, HEADER_Y);
             doc.text('To', RIGHT, HEADER_Y, { align: 'right' });
 
-            doc.setFontSize(15); doc.setFont('helvetica', 'bold');
+            doc.setFontSize(16); doc.setFont('helvetica', 'bold');
             doc.text('Mahalakshmi Stores', LEFT, HEADER_Y + 5);
 
-            doc.setFontSize(11.5); doc.setFont('helvetica', 'bold');
-            doc.text(recipient, RIGHT, HEADER_Y + 5, { align: 'right' });
+            doc.setFontSize(12.2); doc.setFont('helvetica', 'bold');
+            doc.text(fitPdfText(doc, recipient, 82), RIGHT, HEADER_Y + 5, { align: 'right' });
 
-            doc.setFontSize(9.5); doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10); doc.setFont('helvetica', 'normal');
             doc.text('4 Bunglow Building, Nanjundapuram Road', LEFT, HEADER_Y + 9);
             doc.text('Coimbatore - 641036', LEFT, HEADER_Y + 13);
             doc.text('Coimbatore - 641036', RIGHT, HEADER_Y + 9, { align: 'right' });
@@ -802,13 +804,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // BILL META
             doc.setLineWidth(0.4);
             doc.line(LEFT, META_LINE_Y, RIGHT, META_LINE_Y);
-            doc.setFontSize(10.5); doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11.2); doc.setFont('helvetica', 'bold');
             doc.text('Bill No: ' + billNo + ' (' + catLabel + ')', LEFT, META_LINE_Y + 4.5);
             doc.text(dateStr, RIGHT, META_LINE_Y + 4.5, { align: 'right' });
             doc.line(LEFT, META_LINE_Y + 7, RIGHT, META_LINE_Y + 7);
 
             // COLUMN HEADERS
-            doc.setFontSize(10.5); doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11.2); doc.setFont('helvetica', 'bold');
             doc.text('S.No', C.sno + 6, COL_HDR_Y, { align: 'center' });
             doc.text('Item', C.item, COL_HDR_Y);
             doc.text('Rate(Rs.)', C.rate + 12, COL_HDR_Y, { align: 'right' });
@@ -820,11 +822,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // DATA ROWS
             let y = DATA_START_Y;
-            const start = pg * rowsPerPage;
-            const end = Math.min(start + rowsPerPage, items.length);
+            const { start, end } = pageRanges[pg];
 
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(10.5);
+            doc.setFontSize(bodyFontSize);
 
             for (let i = start; i < end; i++) {
                 const it = items[i];
@@ -833,12 +834,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? Number(it.qty).toFixed(2).replace(/\.00$/, '')
                     : String(Math.round(it.qty))) + ' ' + unit;
                 doc.text(String(sNo), C.sno + 6, y, { align: 'center' });
-                doc.text(it.displayName, C.item, y);
+                doc.text(fitPdfText(doc, it.displayName, C.rate - C.item - 7), C.item, y);
                 doc.text(String(Math.round(it.rate)), C.rate + 12, y, { align: 'right' });
                 doc.text(qtyText, C.qty + 10, y, { align: 'center' });
                 doc.text(it.amount.toFixed(2), RIGHT, y, { align: 'right' });
                 sNo++;
-                y += ROW_H;
+                y += rowH;
             }
 
             // GRAND TOTAL (last page)
@@ -847,7 +848,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 doc.setLineWidth(0.4);
                 doc.line(LEFT, y, RIGHT, y);
                 y += 5;
-                doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+                doc.setFontSize(11.8); doc.setFont('helvetica', 'bold');
                 doc.text('Grand Total', C.amt - 3, y, { align: 'right' });
                 doc.text('Rs.' + grandTotal.toFixed(2), RIGHT, y, { align: 'right' });
                 y += 2;
@@ -855,11 +856,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // FOOTER
-            doc.setFontSize(7.5); doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8); doc.setFont('helvetica', 'normal');
             doc.text('Page ' + (pg + 1) + ' of ' + totalPages, RIGHT, FOOTER_Y, { align: 'right' });
         }
 
-        const filename = 'Invoice_' + billNo + '_' + catLabel + '.pdf';
+        const filename = 'Invoice_' + safeFilenamePart(billNo) + '_' + catLabel + '.pdf';
         doc.save(filename);
         showToast('PDF downloaded: ' + filename);
     }
@@ -878,7 +879,7 @@ document.addEventListener('DOMContentLoaded', () => {
             billNo,
             category: currentMode,
             catLabel,
-            date: billDateInput.value,
+            date: normalizeDateInputValue(billDateInput.value) || billDateInput.value,
             recipient: recipientInput.value,
             items: getCurrentState().map(i => ({
                 displayName: i.displayName,
@@ -909,7 +910,7 @@ document.addEventListener('DOMContentLoaded', () => {
             billNoInput.value = data.billNo || '';
             billNos[currentMode] = billNoInput.value || billNos[currentMode];
             persistBillNosByCategory();
-            billDateInput.value = data.date || new Date().toISOString().slice(0, 10);
+            setBillDateValue(data.date || getLocalDateInputValue());
             recipientInput.value = data.recipient || 'Access Life Assistance';
 
             states[currentMode] = normalizeLoadedItems(
@@ -929,6 +930,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showLoadModal() {
         const list = document.getElementById('billList');
         const keys = [];
+        list.textContent = '';
 
         for (let i = 0; i < localStorage.length; i++) {
             const k = localStorage.key(i);
@@ -936,7 +938,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (keys.length === 0) {
-            list.innerHTML = '<div class="bill-list-empty">No saved bills yet</div>';
+            const empty = document.createElement('div');
+            empty.className = 'bill-list-empty';
+            empty.textContent = 'No saved bills yet';
+            list.appendChild(empty);
         } else {
             const bills = keys.map(k => {
                 try {
@@ -948,31 +953,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
             bills.sort((a, b) => (b.savedAt || '').localeCompare(a.savedAt || ''));
 
-            list.innerHTML = bills.map(b => {
+            bills.forEach(b => {
                 const itemCount = Array.isArray(b.items) ? b.items.filter(i => (i.qty || 0) > 0).length : 0;
-                return '<article class="bill-card">' +
-                    '<div class="bill-main">' +
-                    '<strong>Bill #' + (b.billNo || '-') + ' (' + (b.catLabel || b.category || '-') + ')</strong>' +
-                    '<span>' + (b.date || '') + ' | ' + itemCount + ' items</span>' +
-                    '</div>' +
-                    '<div class="bill-actions">' +
-                    '<strong>Rs.' + ((b.total || 0).toFixed(2)) + '</strong>' +
-                    '<button class="btn-load-bill" data-key="' + b.key + '">Load</button>' +
-                    '<button class="btn-delete-bill" data-key="' + b.key + '">Delete</button>' +
-                    '</div>' +
-                    '</article>';
-            }).join('');
+                const card = document.createElement('article');
+                card.className = 'bill-card';
 
-            list.querySelectorAll('.btn-load-bill').forEach(btn => {
-                btn.addEventListener('click', () => loadBill(btn.dataset.key));
-            });
+                const main = document.createElement('div');
+                main.className = 'bill-main';
 
-            list.querySelectorAll('.btn-delete-bill').forEach(btn => {
-                btn.addEventListener('click', () => {
+                const title = document.createElement('strong');
+                title.textContent = 'Bill #' + (b.billNo || '-') + ' (' + (b.catLabel || b.category || '-') + ')';
+
+                const meta = document.createElement('span');
+                meta.textContent = (normalizeDateInputValue(b.date) || b.date || '') + ' | ' + itemCount + ' items';
+
+                const actions = document.createElement('div');
+                actions.className = 'bill-actions';
+
+                const total = document.createElement('strong');
+                total.textContent = 'Rs.' + (Number(b.total || 0).toFixed(2));
+
+                const loadBtn = document.createElement('button');
+                loadBtn.className = 'btn-load-bill';
+                loadBtn.type = 'button';
+                loadBtn.textContent = 'Load';
+                loadBtn.addEventListener('click', () => loadBill(b.key));
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn-delete-bill';
+                deleteBtn.type = 'button';
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.addEventListener('click', () => {
                     if (!confirm('Delete this saved bill?')) return;
-                    localStorage.removeItem(btn.dataset.key);
+                    localStorage.removeItem(b.key);
                     showLoadModal();
                 });
+
+                main.appendChild(title);
+                main.appendChild(meta);
+                actions.appendChild(total);
+                actions.appendChild(loadBtn);
+                actions.appendChild(deleteBtn);
+                card.appendChild(main);
+                card.appendChild(actions);
+                list.appendChild(card);
             });
         }
 
@@ -995,20 +1019,31 @@ document.addEventListener('DOMContentLoaded', () => {
         const previewBody = document.getElementById('previewBody');
         const previewTotal = document.getElementById('previewTotal');
 
-        previewMeta.innerHTML =
-            '<strong>Bill No:</strong> ' + (billNoInput.value || '-') +
-            ' | <strong>Category:</strong> ' + catLabel +
-            ' | <strong>Date:</strong> ' + (billDateInput.value || '-') +
-            '<br><strong>Recipient:</strong> ' + (recipientInput.value || '-');
+        previewMeta.textContent = '';
+        appendPreviewMetaLine(previewMeta, [
+            ['Bill No:', billNoInput.value || '-'],
+            ['Category:', catLabel],
+            ['Date:', billDateInput.value || '-']
+        ]);
+        appendPreviewMetaLine(previewMeta, [
+            ['Recipient:', recipientInput.value || '-']
+        ]);
 
-        previewBody.innerHTML = items.map(it =>
-            '<tr>' +
-            '<td>' + escapeHtml(it.displayName) + '</td>' +
-            '<td>' + formatQtyWithUnit(it.qty, it.unit || 'Pcs') + '</td>' +
-            '<td>Rs.' + Math.round(it.rate) + '</td>' +
-            '<td>Rs.' + it.amount.toFixed(2) + '</td>' +
-            '</tr>'
-        ).join('');
+        previewBody.textContent = '';
+        items.forEach(it => {
+            const tr = document.createElement('tr');
+            [
+                it.displayName,
+                formatQtyWithUnit(it.qty, it.unit || 'Pcs'),
+                'Rs.' + Math.round(it.rate),
+                'Rs.' + it.amount.toFixed(2)
+            ].forEach(value => {
+                const td = document.createElement('td');
+                td.textContent = value;
+                tr.appendChild(td);
+            });
+            previewBody.appendChild(tr);
+        });
 
         const total = items.reduce((sum, i) => sum + i.amount, 0);
         previewTotal.textContent = 'Total: Rs.' + total.toFixed(2);
@@ -1020,13 +1055,15 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('previewModal').classList.add('hidden');
     }
 
-    function escapeHtml(text) {
-        return String(text)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
+    function appendPreviewMetaLine(container, pairs) {
+        if (container.childNodes.length > 0) container.appendChild(document.createElement('br'));
+        pairs.forEach((pair, index) => {
+            if (index > 0) container.appendChild(document.createTextNode(' | '));
+            const label = document.createElement('strong');
+            label.textContent = pair[0];
+            container.appendChild(label);
+            container.appendChild(document.createTextNode(' ' + pair[1]));
+        });
     }
 
     /* ==================== CSV EXPORT ==================== */
@@ -1265,7 +1302,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function resetCurrentBill() {
-        if (!confirm('Clear rates and quantities for this category?')) return;
+        if (!confirm('Clear all quantities for ' + getCategoryLabel(currentMode) + '? This cannot be undone.')) return;
         getCurrentState().forEach(item => {
             item.qty = 0;
             item.rate = item.isCustom ? 0 : item.rate;
@@ -1279,11 +1316,102 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function formatDateForPDF(dateStr) {
-        if (!dateStr) return '-';
-        const d = new Date(dateStr + 'T00:00:00');
-        const day = String(d.getDate()).padStart(2, '0');
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        return day + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+        return normalizeDateInputValue(dateStr) || '-';
+    }
+
+    function getLocalDateInputValue(date = new Date()) {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return day + '/' + month + '/' + year;
+    }
+
+    function formatDateInput(value) {
+        const normalized = normalizeDateInputValue(value);
+        if (normalized) return normalized;
+        const digits = String(value || '').replace(/\D/g, '').slice(0, 8);
+        if (digits.length <= 2) return digits;
+        if (digits.length <= 4) return digits.slice(0, 2) + '/' + digits.slice(2);
+        return digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
+    }
+
+    function normalizeDateInputValue(value) {
+        const text = String(value || '').trim();
+        const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (isoMatch) return getValidatedDisplayDate(isoMatch[3], isoMatch[2], isoMatch[1]);
+
+        const displayMatch = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (displayMatch) return getValidatedDisplayDate(displayMatch[1], displayMatch[2], displayMatch[3]);
+
+        const digits = text.replace(/\D/g, '');
+        if (digits.length === 8) return getValidatedDisplayDate(digits.slice(0, 2), digits.slice(2, 4), digits.slice(4));
+        return '';
+    }
+
+    function getValidatedDisplayDate(dayRaw, monthRaw, yearRaw) {
+        const day = Number(dayRaw);
+        const month = Number(monthRaw);
+        const year = Number(yearRaw);
+        if (!Number.isInteger(day) || !Number.isInteger(month) || !Number.isInteger(year)) return '';
+        if (year < 1900 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31) return '';
+
+        const d = new Date(year, month - 1, day);
+        if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return '';
+
+        return String(day).padStart(2, '0') + '/' + String(month).padStart(2, '0') + '/' + year;
+    }
+
+    function setBillDateValue(value) {
+        const displayDate = normalizeDateInputValue(value) || getLocalDateInputValue();
+        billDateInput.value = displayDate;
+        billDatePicker.value = toIsoDateValue(displayDate);
+    }
+
+    function openBillDatePicker() {
+        const isoValue = toIsoDateValue(billDateInput.value) || toIsoDateValue(getLocalDateInputValue());
+        if (isoValue) billDatePicker.value = isoValue;
+
+        if (typeof billDatePicker.showPicker === 'function') {
+            billDatePicker.showPicker();
+            return;
+        }
+
+        billDatePicker.focus();
+        billDatePicker.click();
+    }
+
+    function toIsoDateValue(value) {
+        const displayDate = normalizeDateInputValue(value);
+        if (!displayDate) return '';
+        const parts = displayDate.split('/');
+        return parts[2] + '-' + parts[1] + '-' + parts[0];
+    }
+
+    function fitPdfText(doc, text, maxWidth) {
+        const value = String(text || '');
+        if (doc.getTextWidth(value) <= maxWidth) return value;
+        const suffix = '...';
+        let out = value;
+        while (out.length > 0 && doc.getTextWidth(out + suffix) > maxWidth) {
+            out = out.slice(0, -1);
+        }
+        return out ? out + suffix : suffix;
+    }
+
+    function getPdfPageRanges(itemCount, standardRowsPerPage, onePageOverflowLimit) {
+        if (itemCount <= onePageOverflowLimit) {
+            return [{ start: 0, end: itemCount }];
+        }
+
+        const ranges = [];
+        for (let start = 0; start < itemCount; start += standardRowsPerPage) {
+            ranges.push({ start, end: Math.min(start + standardRowsPerPage, itemCount) });
+        }
+        return ranges;
+    }
+
+    function safeFilenamePart(value) {
+        return String(value || 'export').replace(/[\\/:*?"<>|]+/g, '-').trim() || 'export';
     }
 
     function showToast(msg, type = 'success') {
@@ -1336,28 +1464,66 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function showMoreModal() {
+        document.getElementById('moreModal').classList.remove('hidden');
+    }
+
+    function closeMoreModal() {
+        document.getElementById('moreModal').classList.add('hidden');
+    }
+
     /* ==================== WIRE BUTTONS ==================== */
     document.getElementById('pdfBtn').addEventListener('click', generatePDF);
     document.getElementById('previewBtn').addEventListener('click', showPreviewModal);
-    document.getElementById('importCsvBtn').addEventListener('click', () => csvImportInput?.click());
-    document.getElementById('saveBtn').addEventListener('click', saveBill);
-    document.getElementById('loadBtn').addEventListener('click', showLoadModal);
-    document.getElementById('csvBtn').addEventListener('click', exportCSV);
+    document.getElementById('moreBtn').addEventListener('click', showMoreModal);
+    document.getElementById('importCsvBtn').addEventListener('click', () => {
+        closeMoreModal();
+        csvImportInput?.click();
+    });
+    document.getElementById('saveBtn').addEventListener('click', () => {
+        saveBill();
+        closeMoreModal();
+    });
+    document.getElementById('loadBtn').addEventListener('click', () => {
+        closeMoreModal();
+        showLoadModal();
+    });
+    document.getElementById('csvBtn').addEventListener('click', () => {
+        exportCSV();
+        closeMoreModal();
+    });
     document.getElementById('addItemBtn').addEventListener('click', addCustomItem);
-    document.getElementById('resetBtn').addEventListener('click', resetCurrentBill);
+    document.getElementById('resetBtn').addEventListener('click', () => {
+        resetCurrentBill();
+        closeMoreModal();
+    });
     document.getElementById('closeModal').addEventListener('click', closeLoadModal);
     document.querySelector('[data-close-load="true"]')?.addEventListener('click', closeLoadModal);
     document.getElementById('closePreview').addEventListener('click', closePreviewModal);
     document.querySelector('[data-close-preview="true"]')?.addEventListener('click', closePreviewModal);
+    document.getElementById('closeMore').addEventListener('click', closeMoreModal);
+    document.querySelector('[data-close-more="true"]')?.addEventListener('click', closeMoreModal);
     billNoInput.addEventListener('input', () => {
         billNos[currentMode] = billNoInput.value.trim() || billNos[currentMode];
         persistBillNosByCategory();
         persistDraftState();
     });
-    billDateInput.addEventListener('input', persistDraftState);
+    billDateField?.addEventListener('click', event => {
+        if (event.target === billDatePicker) return;
+        openBillDatePicker();
+    });
+    billDateInput.addEventListener('click', event => {
+        event.preventDefault();
+        openBillDatePicker();
+    });
+    billDatePicker.addEventListener('change', () => {
+        setBillDateValue(billDatePicker.value);
+        persistDraftState();
+    });
     recipientInput.addEventListener('input', persistDraftState);
     csvImportInput?.addEventListener('change', () => {
         const file = csvImportInput.files && csvImportInput.files[0];
         if (file) importCSVFromFile(file);
     });
 });
+
